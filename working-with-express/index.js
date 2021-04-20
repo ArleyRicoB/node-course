@@ -10,6 +10,9 @@ const shopRoutes = require('./routes/shop');
 // we  dont need bodyParser.urlencoded()
 app.use(express.urlencoded({ extended: false }));
 
+// serving static files
+app.use(express.static(path.join(__dirname, 'public')));
+
 app.use('/admin', adminRoutes);
 app.use(shopRoutes);
 
