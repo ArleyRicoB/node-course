@@ -12,7 +12,7 @@ const newPath = path.join(
 const getCartFromFile = cb => {
   fs.readFile(newPath, (err, fileContent) => {
     if (err) {
-      cb([]);
+      cb(null);
     } else {
       cb(JSON.parse(fileContent));
     }
@@ -56,18 +56,22 @@ module.exports = class Cart {
 
       const product = updatedCart.products.find(p => p.id === id);
 
-      if (product) {
-        const productQuantity = product.qty;
-  
-        updatedCart.products = updatedCart.products.filter(p => p.id != id);
-        updatedCart.totalPrice = updatedCart.totalPrice - productPrice * productQuantity;
-  
-        fs.writeFile(newPath, JSON.stringify(updatedCart), err => {
-          console.log(err);
-        });
+      if (!product) {
+        return;
       }
 
-      return console.log('Product is not in the cart');
+      const productQuantity = product.qty;
+  
+      updatedCart.products = updatedCart.products.filter(p => p.id != id);
+      updatedCart.totalPrice = updatedCart.totalPrice - productPrice * productQuantity;
+
+      fs.writeFile(newPath, JSON.stringify(updatedCart), err => {
+        console.log(err);
+      });
     });
+  }
+
+  static getCart(cb) {
+    getCartFromFile(cb);
   }
 };
