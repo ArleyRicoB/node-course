@@ -40,6 +40,13 @@ exports.getEditProduct = (req, res, next) => {
   })
 };
 
+exports.deleteProduct = (req, res) => {
+  const id = req.body.id;
+
+  Product.deleteById(id);
+  res.redirect('/admin/products');
+};
+
 exports.postEditProduct = (req, res, next) => {
   const id = req.body.id;
   const title = req.body.title;

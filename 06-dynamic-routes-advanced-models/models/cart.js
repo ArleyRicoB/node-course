@@ -9,6 +9,15 @@ const newPath = path.join(
   'cart.json'
 );
 
+const getCartFromFile = cb => {
+  fs.readFile(newPath, (err, fileContent) => {
+    if (err) {
+      cb([]);
+    } else {
+      cb(JSON.parse(fileContent));
+    }
+  });
+};
 
 module.exports = class Cart {
   static addProduct(id, productPrice) {
@@ -38,6 +47,27 @@ module.exports = class Cart {
       fs.writeFile(newPath, JSON.stringify(cart), err => {
         console.log(err);
       });
+    });
+  }
+
+  static deleteProduct(id, productPrice) {
+    getCartFromFile(cart => {
+      const updatedCart = {...cart};
+
+      const product = updatedCart.products.find(p => p.id === id);
+
+      if (product) {
+        const productQuantity = product.qty;
+  
+        updatedCart.products = updatedCart.products.filter(p => p.id != id);
+        updatedCart.totalPrice = updatedCart.totalPrice - productPrice * productQuantity;
+  
+        fs.writeFile(newPath, JSON.stringify(updatedCart), err => {
+          console.log(err);
+        });
+      }
+
+      return console.log('Product is not in the cart');
     });
   }
 };
