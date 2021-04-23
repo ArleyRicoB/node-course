@@ -1,5 +1,6 @@
 const Cart = require('../models/cart-item');
 const Product = require('../models/product');
+const Order = require('../models/order');
 
 exports.getProducts = (req, res, next) => {
   Product
@@ -65,6 +66,7 @@ exports.getCart = (req, res, next) => {
 exports.postCart = (req, res, next) => {
   const productId = req.body.productId;
   let fetchedCart;
+  let newQuantity = 1;
 
   req.user
     .getCart()
@@ -81,27 +83,24 @@ exports.postCart = (req, res, next) => {
         product = products[0];
       }
 
-      let newQuantity = 1;
-
       // Add a product to an existing product
       if (product) {
         // when we have a product, we can access to the cartItem as property
         const oldQuantity = product.cartItem.quantity;
         newQuantity = oldQuantity + 1;
-        return fetchedCart.addProduct(product, {
-          through: { quantity: newQuantity}
-        })
+
+        // returns the product found in the "Cart table";
+        return product;
       }
 
       // Add a new product
+      // returns the product found in Products Table
       return Product.findByPk(productId)
-        .then(product2 => {
-
-          // Asumming we found the product
-          return fetchedCart.addProduct(product2, {
-            through: { quantity: newQuantity }
-          });
-        }).catch(err => console.log(err));
+    })
+    .then(data => {
+      return fetchedCart.addProduct(data, {
+        through: { quantity: newQuantity }
+      });
     })
     .then(() => res.redirect('/cart'))
     .catch(err => console.log(err));
@@ -109,6 +108,21 @@ exports.postCart = (req, res, next) => {
 
 exports.deleteCartItem = (req, res) => {
   const productId = req.body.productId;
+
+  req.user
+    .getCart()
+    .then(cart => {
+      return cart.getProducts({ where: { id: productId }})
+    })
+    .then(products => {
+      const product = products[0];
+      // cartItem: magic field that exist in between table
+      return product.cartItem.destroy();
+    })
+    .then(() => {
+      res.redirect('/cart');
+    })
+    .catch(err => console.log(err));
 
   Product.findByPk(productId)
     .then((product) => {
@@ -118,14 +132,53 @@ exports.deleteCartItem = (req, res) => {
     .catch(err => console.log(err));
 }
 
+exports.postOrder = (req, res, next) => {
+  let fetchedCart;
+
+  req.user
+    .getCart()
+    .then(cart => {
+      fetchedCart = cart;
+      return cart.getProducts();
+    })
+    .then(products => {
+      console.log(products);
+      return req.user.createOrder().then(order => {
+        order.addProducts(
+          products.map(product => {
+            product.orderItem = { quantity: product.cartItem.quantity }
+            return product;
+          })
+        );
+      });
+    })
+    .then(() => {
+      // clean up the cart
+      return fetchedCart.setProducts(null);
+    })
+    .then(() => {
+      res.redirect('/orders');
+    })
+    .catch(err => console.log(err))
+}
+
 exports.getOrders = (req, res, next) => {
-  res.render('shop/orders', {
-    path: '/orders',
-    pageTitle: 'Your Orders'
-  });
+
+  // fetch related orders with products
+  req.user
+  .getOrders({ include: ['products'] })
+  .then(orders => {
+    res.render('shop/orders', {
+      orders,
+      path: '/orders',
+      pageTitle: 'Your Orders'
+    });
+  })
+  .catch(err => console.error(err));
 };
 
 exports.getCheckout = (req, res, next) => {
+
   res.render('shop/checkout', {
     path: '/checkout',
     pageTitle: 'Checkout'
