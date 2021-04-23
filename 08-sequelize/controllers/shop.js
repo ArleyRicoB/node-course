@@ -64,14 +64,47 @@ exports.getCart = (req, res, next) => {
 
 exports.postCart = (req, res, next) => {
   const productId = req.body.productId;
+  let fetchedCart;
 
-  Product.findByPk(productId)
-    .then((product) => {
-      Cart.addProduct(product.id, product.price);
+  req.user
+    .getCart()
+    .then(cart => {
+      fetchedCart = cart;
+      // especial funcition created by sequalize,
+      // is created under the connection between Cart and Products
+      return cart.getProducts({ where: { id: productId }})
     })
-    .catch(err => console.log(err));
+    .then(products => {
+      let product
 
-  res.redirect('/cart');
+      if (products.length > 0) {
+        product = products[0];
+      }
+
+      let newQuantity = 1;
+
+      // Add a product to an existing product
+      if (product) {
+        // when we have a product, we can access to the cartItem as property
+        const oldQuantity = product.cartItem.quantity;
+        newQuantity = oldQuantity + 1;
+        return fetchedCart.addProduct(product, {
+          through: { quantity: newQuantity}
+        })
+      }
+
+      // Add a new product
+      return Product.findByPk(productId)
+        .then(product2 => {
+
+          // Asumming we found the product
+          return fetchedCart.addProduct(product2, {
+            through: { quantity: newQuantity }
+          });
+        }).catch(err => console.log(err));
+    })
+    .then(() => res.redirect('/cart'))
+    .catch(err => console.log(err));
 };
 
 exports.deleteCartItem = (req, res) => {

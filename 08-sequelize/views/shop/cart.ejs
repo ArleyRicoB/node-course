@@ -1,18 +1,18 @@
 <%- include('../includes/head.ejs') %>
+    <link rel="stylesheet" href="/css/cart.css">
     </head>
 
     <body>
         <%- include('../includes/navigation.ejs') %>
         <main>
             <% if (products.length > 0) { %>
-                <ul>
+                <ul class="cart__item-list">
                     <% products.map(prod => { %>
-                        <li>
-                            <div>
-                                <p><%= prod.productData.title %> (<%= prod.qty %>)</p>
-                            </div>
+                        <li class="cart__item">
+                            <h1><%= prod.title %></h1>
+                            <h2>Quantity: <%= prod.cartItem.quantity %></h2>
                             <form action="/cart-delete-item" method="post">
-                                <input type="hidden" name="productId" value="<%= prod.productData.id %>">
+                                <input type="hidden" name="productId" value="<%= prod.cartItem.id %>">
                                 <button class="btn" type="submit">Delete</button>
                             </form>
                         </li>
