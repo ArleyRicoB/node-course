@@ -49,9 +49,6 @@ exports.getIndex = (req, res, next) => {
 exports.getCart = (req, res, next) => {
   req.user
     .getCart()
-    .then(cart => {
-      return cart.getProducts();
-    })
     .then(cartProducts => {
       res.render('shop/cart', {
         path: '/cart',
@@ -64,42 +61,11 @@ exports.getCart = (req, res, next) => {
 
 exports.postCart = (req, res, next) => {
   const productId = req.body.productId;
-  let fetchedCart;
-  let newQuantity = 1;
-
-  req.user
-    .getCart()
-    .then(cart => {
-      fetchedCart = cart;
-      // especial funcition created by sequalize,
-      // is created under the connection between Cart and Products
-      return cart.getProducts({ where: { id: productId }})
-    })
-    .then(products => {
-      let product
-
-      if (products.length > 0) {
-        product = products[0];
-      }
-
-      // Add a product to an existing product
-      if (product) {
-        // when we have a product, we can access to the cartItem as property
-        const oldQuantity = product.cartItem.quantity;
-        newQuantity = oldQuantity + 1;
-
-        // returns the product found in the "Cart table";
-        return product;
-      }
-
-      // Add a new product
-      // returns the product found in Products Table
-      return Product.findByPk(productId)
-    })
-    .then(data => {
-      return fetchedCart.addProduct(data, {
-        through: { quantity: newQuantity }
-      });
+  
+  Product
+    .findById(productId)
+    .then(product => {
+      return req.user.addToCart(product);
     })
     .then(() => res.redirect('/cart'))
     .catch(err => console.log(err));
@@ -109,23 +75,8 @@ exports.deleteCartItem = (req, res) => {
   const productId = req.body.productId;
 
   req.user
-    .getCart()
-    .then(cart => {
-      return cart.getProducts({ where: { id: productId }})
-    })
-    .then(products => {
-      const product = products[0];
-      // cartItem: magic field that exist in between table
-      return product.cartItem.destroy();
-    })
-    .then(() => {
-      res.redirect('/cart');
-    })
-    .catch(err => console.log(err));
-
-  Product.findByPk(productId)
+    .deleteCartItem(productId)
     .then((product) => {
-      Cart.deleteProduct(productId, product.price);
       res.redirect('/cart');
     })
     .catch(err => console.log(err));
