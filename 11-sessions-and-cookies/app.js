@@ -1,18 +1,21 @@
 const path = require('path');
 
 const express = require('express');
-const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const session = require('express-session');
 const mongoDBStore = require('connect-mongodb-session')(session);
 
+require('dotenv').config();
+
 const errorController = require('./controllers/error');
 const User = require('./models/user');
 
-const mongodbURI = 'mongodb+srv://arleyrico:N1LJVbTUZqAUScPD@cluster0.v8vwe.mongodb.net/shop';
+const mongodbURI = process.env.MONGOURL;
+const secret = process.env.SECRET;
 
 const app = express();
-const store = new mongoDBStore({
+
+const sessionStore = new mongoDBStore({
   uri: mongodbURI,
   collection: 'sessions'
 });
@@ -27,20 +30,11 @@ const authRoutes = require('./routes/auth');
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
-  secret: 'my secret',
+  secret: secret,
   resave: false,
   saveUninitialized: false,
-  store
+  store: sessionStore,
 }));
-
-app.use((req, res, next) => {
-  User.findById('5bab316ce0a7c75f783cb8a8')
-    .then(user => {
-      req.user = user;
-      next();
-    })
-    .catch(err => console.log(err));
-});
 
 app.use('/admin', adminRoutes);
 app.use(shopRoutes);
