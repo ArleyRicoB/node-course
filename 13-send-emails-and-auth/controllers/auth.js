@@ -178,7 +178,38 @@ exports.getNewPassword = (req, res, next) => {
         pageTitle: 'New Password',
         errorMessage: message,
         userId: user._id.toString(),
+        passwordToken: token
       })
+    })
+    .catch(err => console.log(err));
+}
+
+exports.postNewPassword = (req, res, next) => {
+  const password = req.body.password;
+  const userId = req.body.userId;
+  const token = req.body.passwordToken;
+  let resetUser;
+
+  User
+    .findOne({
+      _id: userId,
+      resetToken: token,
+      resetTokenExpiration: { $gt: Date.now() }
+    })
+    .then(user => {
+      resetUser = user;
+
+      return bcrypt.hash(password, 12);
+    })
+    .then(hashedPassword => {
+      resetUser.password = hashedPassword;
+      resetUser.resetToken = null;
+      resetUser.resetTokenExpiration = null;
+
+      return resetUser.save();
+    })
+    .then(result => {
+      res.redirect('/login');
     })
     .catch(err => console.log(err));
 }
