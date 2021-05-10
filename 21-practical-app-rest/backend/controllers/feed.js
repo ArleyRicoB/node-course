@@ -5,21 +5,34 @@ const fs = require('fs');
 const Post = require('../models/post');
 
 exports.getPosts = (req, res, next) => {
-  Post
-    .find()
-    .then(posts => {
-      res.status(200).json({
-        message: 'Fetched posts successfully',
-        posts
-      })
-    })
-    .catch(err => {
-      if (!err.statusCode) {
-        err.statusCode = 500;
-      }
+  const currentPage = +req.query.page || 1;
+  const itemsPerPage = req.query.skip || 2;
+  let totalItems = 0;
 
-      next(error);
-    });
+  Post
+  .find()
+  .countDocuments()
+  .then(count => {
+    totalItems = count;
+
+    return Post.find()
+      .skip((currentPage - 1) * itemsPerPage)
+      .limit(itemsPerPage);
+  })
+  .then(posts => {
+    res.status(200).json({
+      message: 'Fetched posts successfully',
+      posts,
+      totalItems
+    })
+  })
+  .catch(err => {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+
+    next(err);
+  });
 }
 
 exports.createPost = (req, res, next) => {
@@ -64,7 +77,7 @@ exports.createPost = (req, res, next) => {
         err.statusCode = 500;
       }
 
-      next(error);
+      next(err);
     })
 }
 
@@ -87,7 +100,7 @@ exports.getPostById = (req, res, next) => {
         err.statusCode = 500;
       }
 
-      next(error);
+      next(err);
     });
 }
 

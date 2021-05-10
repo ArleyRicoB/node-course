@@ -34,7 +34,7 @@ class Feed extends Component {
         this.setState({
           status: resData.status,
           posts: resData.posts,
-          totalPosts: resData.totalPosts,
+          totalPosts: resData.totalItems,
           postsLoading: false
         });
       })
@@ -56,7 +56,7 @@ class Feed extends Component {
       page--;
       this.setState({ postPage: page });
     }
-    fetch('URL')
+    fetch(`http://localhost:8080/feed/posts/?page=${ page }&skip=2`)
       .then(res => {
         if (res.status !== 200) {
           throw new Error('Failed to fetch posts.');
