@@ -61,7 +61,7 @@ app.use((error, req, res, next) => {
 
 
 mongoose
-  .connect(process.env.MONGOURL)
+  .connect(process.env.MONGOURL, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => app.listen(8080))
   .catch(err => console.log(err));
 

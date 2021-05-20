@@ -1,5 +1,8 @@
 const { validationResult } = require('express-validator');
 const bcrypt = require('bcryptjs');
+const jwa = require('jsonwebtoken');
+
+require('dotenv').config();
 
 const User = require('../models/user');
 
@@ -39,3 +42,49 @@ exports.signup = (req, res, next) => {
       next(error);
     })
 };
+
+exports.login = (req, res, next) => {
+  const email = req.body.email;
+  const password = req.body.password;
+  let userLoaded;
+
+  User.findOne({ email: email })
+    .then(user => {
+      if (!user) {
+        const error = new Error('A user with this email could not be found');
+        error.statusCode = 401;
+
+        throw error;
+      }
+
+      userLoaded = user;
+      return bcrypt.compare(password, user.password);
+    })
+    .then(isEqual => {
+      if (!isEqual) {
+        const error = new Error('Wrong password');
+        error.statusCode = 401;
+
+        throw error;
+      }
+      console.log(process.env.AUTH_TOKEN);
+
+      const token = jwa.sign(
+        {
+          email: userLoaded.email,
+          userId: userLoaded._id.toString()
+        },
+        process.env.AUTH_TOKEN,
+        { expiresIn: '1h' }
+      );
+
+      res.status(200).json({ token, userId: userLoaded._id.toString() })
+    })
+    .catch((err) => {
+      if (!err.statusCode) {
+        err.statusCode = 500;
+      }
+  
+      next(error);
+    })
+}
