@@ -1,6 +1,6 @@
 const { validationResult } = require('express-validator');
 const bcrypt = require('bcryptjs');
-const jwa = require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
 
 require('dotenv').config();
 
@@ -67,9 +67,8 @@ exports.login = (req, res, next) => {
 
         throw error;
       }
-      console.log(process.env.AUTH_TOKEN);
 
-      const token = jwa.sign(
+      const token = jwt.sign(
         {
           email: userLoaded.email,
           userId: userLoaded._id.toString()
@@ -85,6 +84,6 @@ exports.login = (req, res, next) => {
         err.statusCode = 500;
       }
   
-      next(error);
+      next(err);
     })
 }
